@@ -1,0 +1,4 @@
+project(':build.gradle').projectDir = new File(rootDir, 'flutter_application_1/android/build.gradle')
+include ':build.gradle'
+project(':build.gradle').projectDir = new File(rootDir, 'flutter_application_1/android/build.gradle')
+include ':build.gradle'
