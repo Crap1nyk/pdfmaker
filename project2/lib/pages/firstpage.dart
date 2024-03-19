@@ -1,11 +1,13 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:camera/camera.dart';
+import 'package:image/image.dart' as img;
+import 'package:path_provider/path_provider.dart'; // Import image package
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:image/image.dart' as img;
-import 'package:camera/camera.dart';
 import 'package:printing/printing.dart';
 
 class Firstpage extends StatefulWidget {
@@ -36,9 +38,7 @@ class _FirstpageState extends State<Firstpage> {
       enableAudio: false,
     );
 
-    _initializeControllerFuture = _controller.initialize().catchError((error) {
-      print("Error initializing camera: $error");
-    });
+    _initializeControllerFuture = _controller.initialize();
   }
 
   @override
@@ -49,81 +49,131 @@ class _FirstpageState extends State<Firstpage> {
           images.isEmpty
               ? Center(
                   child: Container(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const SizedBox(
-                          height: 20,
-                        ),
-                        Text(
-                          'Select Image From Camera or Gallery',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: const Color.fromARGB(255, 6, 6, 6),
-                            fontSize: 20,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            height: 20,
                           ),
-                        ),
-                      ],
+                          Text(
+                            'Select Image From Camera or Gallery',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: const Color.fromARGB(255, 6, 6, 6),
+                              fontSize: 20,
+                            ),
+                          ),
+                          Text(
+                            'Press remove once to remove filter,twice to delete image.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: const Color.fromARGB(255, 6, 6, 6),
+                              fontSize: 20,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 )
-              : PdfPreview(
-                  maxPageWidth: 1000,
-                  canChangeOrientation: true,
-                  canDebug: false,
-                  build: (format) => generateDocument(format, images),
-                ),
-          _buildFloatingActionButton(Icons.image, getImageFromGallery),
-          _buildFloatingActionButton(Icons.camera, getImageFromCamera),
-          _buildFloatingActionButton(Icons.delete, removeImage),
+              : Image.file(images.last),
+          Align(
+            alignment: Alignment(-0.7, 0.7),
+            child: FloatingActionButton(
+              elevation: 0.0,
+              child: new Icon(
+                Icons.image,
+              ),
+              backgroundColor: Color.fromARGB(255, 197, 206, 166),
+              onPressed: getImageFromGallery,
+            ),
+          ),
+          Align(
+            alignment: Alignment(0.7, 0.7),
+            child: FloatingActionButton(
+              elevation: 0.0,
+              child: new Icon(
+                Icons.camera,
+              ),
+              backgroundColor: Color.fromARGB(255, 197, 206, 166),
+              onPressed: getImageFromCamera,
+            ),
+          ),
+          Align(
+            alignment: Alignment(0.0, 0.7),
+            child: FloatingActionButton(
+              elevation: 0.0,
+              child: new Icon(
+                Icons.delete,
+              ),
+              backgroundColor: Color.fromARGB(255, 197, 206, 166),
+              onPressed: removeImage,
+            ),
+          ),
+          Align(
+            alignment: Alignment(-0.7, 0.9),
+            child: FloatingActionButton(
+              onPressed: applyThresholdFilter,
+              tooltip: 'Apply Threshold Filter',
+              child: Icon(Icons.brush),
+            ),
+          ),
+          Align(
+            alignment: Alignment(0.7, 0.9),
+            child: FloatingActionButton(
+              onPressed: generateAndPrintPDF,
+              tooltip: 'Generate and Print PDF',
+              child: Icon(Icons.print),
+            ),
+          ),
+          Align(
+            alignment: Alignment(0.0, 0.9),
+            child: FloatingActionButton(
+              onPressed: applyThresholdFilter2,
+              tooltip: 'Apply Threshold Filter2',
+              child: Icon(Icons.filter),
+            ),
+          ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _onOKPressed,
-        tooltip: 'OK',
-        child: Icon(Icons.done),
-      ),
     );
   }
 
-  Widget _buildFloatingActionButton(IconData icon, Function() onPressed) {
-    return Align(
-      alignment: Alignment(icon == Icons.image ? -0.7 : icon == Icons.camera ? 0.7 : 0.0, 0.7),
-      child: FloatingActionButton(
-        elevation: 0.0,
-        child: Icon(icon),
-        backgroundColor: Color.fromARGB(255, 197, 206, 166),
-        onPressed: onPressed,
-      ),
-    );
+  getImageFromGallery() async {
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    File? img;
+    if (pickedFile != null) {
+      img = await cropCustomImg(pickedFile);
+    }
+    setState(() {
+      if (pickedFile != null) {
+        images.add(File(img?.path ?? pickedFile.path));
+      } else {
+        print('No image selected');
+      }
+    });
   }
 
-  Future<void> getImageFromGallery() async {
-    final pickedFile = await picker.getImage(source: ImageSource.gallery);
+  getImageFromCamera() async {
+    final pickedFile = await picker.pickImage(source: ImageSource.camera);
+    File? img;
     if (pickedFile != null) {
-      setState(() {
-        images.add(File(pickedFile.path));
-      });
-    } else {
-      print('No image selected');
+      img = await cropCustomImg(pickedFile);
     }
-  }
-
-  Future<void> getImageFromCamera() async {
-    final pickedFile = await picker.getImage(source: ImageSource.camera);
-    if (pickedFile != null) {
-      setState(() {
-        images.add(File(pickedFile.path));
-      });
-    } else {
-      print('No image selected');
-    }
+    setState(() {
+      if (pickedFile != null) {
+        images.add(File(img?.path ?? pickedFile.path));
+      } else {
+        print('No image selected');
+      }
+    });
     await _initializeControllerFuture;
     _toggleFlash();
   }
 
-  void removeImage() {
+  removeImage() {
     setState(() {
       if (images.isNotEmpty) {
         images.removeLast();
@@ -133,45 +183,37 @@ class _FirstpageState extends State<Firstpage> {
     });
   }
 
-  Future<Uint8List> applyImageEnhancementToBytes(Uint8List bytes) async {
-    final img.Image image = img.decodeImage(bytes)!;
-    img.adjustColor(image, contrast: 1.3);
-    img.adjustColor(image, brightness: 1.2);
-    img.minMax(image);// Increase brightness
-   img.grayscale(image!); // Convert image to grayscale for better readability
-    return Uint8List.fromList(img.encodePng(image));
+  Future<File?> cropCustomImg(XFile img) async {
+    File? croppedImage = await ImageCropper().cropImage(
+      sourcePath: img.path,
+      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+      androidUiSettings: const AndroidUiSettings(lockAspectRatio: false),
+    );
+
+    if (croppedImage != null) {
+      // Apply filters to the cropped image
+      File filteredImage = await applyFilter(croppedImage);
+      return filteredImage;
+    } else {
+      return null;
+    }
   }
 
-  Future<Uint8List> generateDocument(PdfPageFormat format, List<File> images) async {
-    final doc = pw.Document(pageMode: PdfPageMode.outlines);
-    final font1 = await PdfGoogleFonts.openSansRegular();
-    final font2 = await PdfGoogleFonts.openSansBold();
+  Future<File> applyFilter(File imageFile) async {
+    // Read the image file
+    Uint8List bytes = await imageFile.readAsBytes();
+    img.Image image = img.decodeImage(bytes)!;
 
-    for (var imageFile in images) {
-      final processedBytes = await applyImageEnhancementToBytes(imageFile.readAsBytesSync());
-      final showimage = pw.MemoryImage(processedBytes);
+    // Apply filters (Example: Adjust brightness and contrast)
+    img.Image filteredImage = img.adjustColor(image, brightness: 1.1);
+    // Apply luminance threshold
 
-      doc.addPage(
-        pw.Page(
-          pageTheme: pw.PageTheme(
-            pageFormat: format.copyWith(
-              marginBottom: 0,
-              marginLeft: 0,
-              marginRight: 0,
-              marginTop: 0,
-            ),
-            orientation: pw.PageOrientation.portrait,
-            theme: pw.ThemeData.withFont(
-              base: font1,
-              bold: font2,
-            ),
-          ),
-          build: (context) => pw.Center(child: pw.Image(showimage, fit: pw.BoxFit.contain)),
-        ),
-      );
-    }
+    // Save the filtered image to a temporary file
+    Directory tempDir = await getTemporaryDirectory();
+    File tempFile = File('${tempDir.path}/filtered_image.jpg');
+    await tempFile.writeAsBytes(img.encodeJpg(filteredImage));
 
-    return await doc.save();
+    return tempFile;
   }
 
   void _toggleFlash() {
@@ -181,35 +223,98 @@ class _FirstpageState extends State<Firstpage> {
     });
   }
 
-  Future<void> _onOKPressed() async {
+  void _onOKPressed() async {
+    // Implement your logic for OK button here
+  }
+
+  Future<void> applyThresholdFilter() async {
     if (images.isNotEmpty) {
-      final croppedBytes = await cropImage(images.last);
-      if (croppedBytes != null) {
-        final pdf = pw.Document();
-        pdf.addPage(
-          pw.Page(
-            build: (context) => pw.Center(child: pw.Image(pw.MemoryImage(croppedBytes))),
-          ),
-        );
-        final file = File('output.pdf');
-        await file.writeAsBytes(await pdf.save());
-        print('PDF generated successfully');
-      } else {
-        print('Failed to crop image');
-      }
+      // Apply threshold filter to the last image in the list
+      File filteredImage = await applyThreshold(images.last);
+      setState(() {
+        images.add(filteredImage);
+      });
     } else {
       print('No image selected');
     }
   }
 
-  Future<Uint8List?> cropImage(File imageFile) async {
-    final Uint8List bytes = await imageFile.readAsBytes();
-    final img.Image image = img.decodeImage(bytes)!;
-    final cropX = (image.width - image.height) ~/ 2;
-    final cropY = 0;
-    final cropSize = image.height;
-    final img.Image croppedImage = img.copyCrop(image, x: cropX, y: cropY, width: cropSize, height: cropSize);
-    return Uint8List.fromList(img.encodePng(croppedImage));
+  Future<void> applyThresholdFilter2() async {
+    if (images.isNotEmpty) {
+      // Apply threshold filter to the last image in the list
+      File filteredImage = await applyThreshold2(images.last);
+      setState(() {
+        images.add(filteredImage);
+      });
+    } else {
+      print('No image selected');
+    }
+  }
+
+  Future<File> applyThreshold(File imageFile) async {
+    // Read the image file
+    Uint8List bytes = await imageFile.readAsBytes();
+    img.Image image = img.decodeImage(bytes)!;
+
+    // Apply threshold filter
+    img.Image thresholdedImage = img.luminanceThreshold(image, threshold: 0.8);
+
+    // Save the filtered image to a temporary file
+    Directory tempDir = await getTemporaryDirectory();
+    File tempFile = File('${tempDir.path}/thresholded_image.jpg');
+    await tempFile.writeAsBytes(img.encodeJpg(thresholdedImage));
+
+    return tempFile;
+  }
+
+  Future<File> applyThreshold2(File imageFile) async {
+    // Read the image file
+    Uint8List bytes = await imageFile.readAsBytes();
+    img.Image image = img.decodeImage(bytes)!;
+
+    // Apply threshold filter
+    img.Image thresholdedImage = img.sketch(image);
+    thresholdedImage = img.adjustColor(image,contrast: 1.2);
+    
+
+    // Save the filtered image to a temporary file
+    Directory tempDir = await getTemporaryDirectory();
+    File tempFile = File('${tempDir.path}/thresholded_image.jpg');
+    await tempFile.writeAsBytes(img.encodeJpg(thresholdedImage));
+
+    return tempFile;
+  }
+
+  Future<void> generateAndPrintPDF() async {
+    if (images.isNotEmpty) {
+      final pdf = pw.Document();
+      
+      final imageFile = images.last;
+      final image = pw.MemoryImage(
+        File(imageFile.path).readAsBytesSync(),
+      );
+
+      pdf.addPage(
+        pw.Page(
+          build: (pw.Context context) {
+            return pw.Center(
+              child: pw.Image(image),
+            );
+          },
+        ),
+      );
+
+      final output = await getTemporaryDirectory();
+      final file = File("${output.path}/example.pdf");
+      await file.writeAsBytes(await pdf.save());
+
+      // Print the PDF
+      await Printing.layoutPdf(
+        onLayout: (PdfPageFormat format) async => pdf.save(),
+      );
+    } else {
+      print('No images to generate PDF');
+    }
   }
 
   @override
@@ -217,4 +322,10 @@ class _FirstpageState extends State<Firstpage> {
     _controller.dispose();
     super.dispose();
   }
+}
+
+void main() {
+  runApp(MaterialApp(
+    home: Firstpage(),
+  ));
 }
