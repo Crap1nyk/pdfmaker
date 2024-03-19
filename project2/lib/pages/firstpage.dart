@@ -152,20 +152,12 @@ class _FirstpageState extends State<Firstpage> {
     File? img;
     if (pickedFile != null) {
       img = await cropCustomImg(pickedFile);
+      setState(() {
+        images.add(File(img?.path ?? pickedFile.path));
+      });
+    } else {
+      print('No image selected');
     }
-    setState(() {
-      if (pickedFile != null) {
-        if (images.isNotEmpty) {
-          // Replace the last image with the filtered image if the list is not empty
-          images[images.length - 1] = img!;
-        } else {
-          // Add the image to the list if it's empty
-          images.add(img!);
-        }
-      } else {
-        print('No image selected');
-      }
-    });
   }
 
   getImageFromCamera() async {
@@ -173,20 +165,12 @@ class _FirstpageState extends State<Firstpage> {
     File? img;
     if (pickedFile != null) {
       img = await cropCustomImg(pickedFile);
+      setState(() {
+        images.add(File(img?.path ?? pickedFile.path));
+      });
+    } else {
+      print('No image selected');
     }
-    setState(() {
-      if (pickedFile != null) {
-        if (images.isNotEmpty) {
-          // Replace the last image with the filtered image if the list is not empty
-          images[images.length - 1] = img!;
-        } else {
-          // Add the image to the list if it's empty
-          images.add(img!);
-        }
-      } else {
-        print('No image selected');
-      }
-    });
     await _initializeControllerFuture;
     _toggleFlash();
   }
@@ -250,7 +234,7 @@ class _FirstpageState extends State<Firstpage> {
       // Apply threshold filter to the last image in the list
       File filteredImage = await applyThreshold(images.last);
       setState(() {
-        images[images.length - 1] = filteredImage; // Replace the last image with the filtered image
+        images.add(filteredImage);
       });
     } else {
       print('No image selected');
@@ -262,7 +246,7 @@ class _FirstpageState extends State<Firstpage> {
       // Apply threshold filter to the last image in the list
       File filteredImage = await applyThreshold2(images.last);
       setState(() {
-        images[images.length - 1] = filteredImage; // Replace the last image with the filtered image
+        images.add(filteredImage);
       });
     } else {
       print('No image selected');
@@ -275,7 +259,7 @@ class _FirstpageState extends State<Firstpage> {
     img.Image image = img.decodeImage(bytes)!;
 
     // Apply threshold filter
-    img.Image thresholdedImage = img.luminanceThreshold(image, threshold: 0.8);
+    img.Image thresholdedImage = img.luminanceThreshold(image, threshold: 0.7);
 
     // Save the filtered image to a temporary file
     Directory tempDir = await getTemporaryDirectory();
@@ -292,7 +276,8 @@ class _FirstpageState extends State<Firstpage> {
 
     // Apply threshold filter
     img.Image thresholdedImage = img.sketch(image);
-    thresholdedImage = img.adjustColor(image, contrast: 1.2);
+    thresholdedImage = img.adjustColor(image,contrast: 1.2);
+    
 
     // Save the filtered image to a temporary file
     Directory tempDir = await getTemporaryDirectory();
@@ -305,7 +290,7 @@ class _FirstpageState extends State<Firstpage> {
   Future<void> generateAndPrintPDF() async {
     if (images.isNotEmpty) {
       final pdf = pw.Document();
-
+      
       for (final imageFile in images) {
         final image = pw.MemoryImage(
           imageFile.readAsBytesSync(),
