@@ -64,7 +64,12 @@ class _FirstpageState extends State<Firstpage> {
                     ),
                   ),
                 )
-              : Image.file(image.last),
+              : ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: image.length,
+                  itemBuilder: (BuildContext context, index) {
+                    return Image.file(image[index]);
+                  }),
           Align(
             alignment: Alignment(-0.7, 0.7),
             child: FloatingActionButton(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:part3/pages/firstpage.dart';
 
+// import 'pages/actionPage[1].dart';
+import 'package:part3/pages/firstpage.dart';
 
 void main() {
   runApp(MyApp());
@@ -28,15 +29,9 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Scanner App'),
-      ),
-      body: Column(
-        children: [
-          Expanded(child: Firstpage()),
-        ],
-      ),
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Firstpage(),
     );
   }
 }
