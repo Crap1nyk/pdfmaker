@@ -5,7 +5,7 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:camera/camera.dart';
 import 'package:image/image.dart' as img;
-import 'package:path_provider/path_provider.dart'; // Import image package
+import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -46,39 +46,45 @@ class _FirstpageState extends State<Firstpage> {
     return Scaffold(
       body: Stack(
         children: [
-          images.isEmpty
-              ? Center(
-                  child: Container(
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            height: 20,
-                          ),
-                          Text(
-                            'Select Image From Camera or Gallery',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: const Color.fromARGB(255, 6, 6, 6),
-                              fontSize: 20,
-                            ),
-                          ),
-                          Text(
-                            'Press remove once to remove filter,twice to delete image.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: const Color.fromARGB(255, 6, 6, 6),
-                              fontSize: 20,
-                            ),
-                          ),
-                        ],
+          if (images.isEmpty)
+            Center(
+              child: Container(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        height: 20,
                       ),
-                    ),
+                      Text(
+                        'Select Image From Camera or Gallery',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: const Color.fromARGB(255, 6, 6, 6),
+                          fontSize: 20,
+                        ),
+                      ),
+                      Text(
+                        'Press remove once to remove filter, twice to delete image.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: const Color.fromARGB(255, 6, 6, 6),
+                          fontSize: 20,
+                        ),
+                      ),
+                    ],
                   ),
-                )
-              : Image.file(images.last),
+                ),
+              ),
+            )
+          else
+            ListView.builder(
+              itemCount: images.length,
+              itemBuilder: (context, index) {
+                return Image.file(images[index]);
+              },
+            ),
           Align(
             alignment: Alignment(-0.7, 0.7),
             child: FloatingActionButton(
@@ -149,7 +155,13 @@ class _FirstpageState extends State<Firstpage> {
     }
     setState(() {
       if (pickedFile != null) {
-        images.add(File(img?.path ?? pickedFile.path));
+        if (images.isNotEmpty) {
+          // Replace the last image with the filtered image if the list is not empty
+          images[images.length - 1] = img!;
+        } else {
+          // Add the image to the list if it's empty
+          images.add(img!);
+        }
       } else {
         print('No image selected');
       }
@@ -164,7 +176,13 @@ class _FirstpageState extends State<Firstpage> {
     }
     setState(() {
       if (pickedFile != null) {
-        images.add(File(img?.path ?? pickedFile.path));
+        if (images.isNotEmpty) {
+          // Replace the last image with the filtered image if the list is not empty
+          images[images.length - 1] = img!;
+        } else {
+          // Add the image to the list if it's empty
+          images.add(img!);
+        }
       } else {
         print('No image selected');
       }
@@ -232,7 +250,7 @@ class _FirstpageState extends State<Firstpage> {
       // Apply threshold filter to the last image in the list
       File filteredImage = await applyThreshold(images.last);
       setState(() {
-        images.add(filteredImage);
+        images[images.length - 1] = filteredImage; // Replace the last image with the filtered image
       });
     } else {
       print('No image selected');
@@ -244,7 +262,7 @@ class _FirstpageState extends State<Firstpage> {
       // Apply threshold filter to the last image in the list
       File filteredImage = await applyThreshold2(images.last);
       setState(() {
-        images.add(filteredImage);
+        images[images.length - 1] = filteredImage; // Replace the last image with the filtered image
       });
     } else {
       print('No image selected');
@@ -274,8 +292,7 @@ class _FirstpageState extends State<Firstpage> {
 
     // Apply threshold filter
     img.Image thresholdedImage = img.sketch(image);
-    thresholdedImage = img.adjustColor(image,contrast: 1.2);
-    
+    thresholdedImage = img.adjustColor(image, contrast: 1.2);
 
     // Save the filtered image to a temporary file
     Directory tempDir = await getTemporaryDirectory();
@@ -288,21 +305,22 @@ class _FirstpageState extends State<Firstpage> {
   Future<void> generateAndPrintPDF() async {
     if (images.isNotEmpty) {
       final pdf = pw.Document();
-      
-      final imageFile = images.last;
-      final image = pw.MemoryImage(
-        File(imageFile.path).readAsBytesSync(),
-      );
 
-      pdf.addPage(
-        pw.Page(
-          build: (pw.Context context) {
-            return pw.Center(
-              child: pw.Image(image),
-            );
-          },
-        ),
-      );
+      for (final imageFile in images) {
+        final image = pw.MemoryImage(
+          imageFile.readAsBytesSync(),
+        );
+
+        pdf.addPage(
+          pw.Page(
+            build: (pw.Context context) {
+              return pw.Center(
+                child: pw.Image(image),
+              );
+            },
+          ),
+        );
+      }
 
       final output = await getTemporaryDirectory();
       final file = File("${output.path}/example.pdf");
