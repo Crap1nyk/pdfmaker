@@ -23,6 +23,7 @@ class _FirstpageState extends State<Firstpage> {
   bool _flashOn = false;
   bool filterApplied = false;
   File? originalImg;
+  bool isLoading = false;
 
   @override
   void initState() {
@@ -110,7 +111,14 @@ class _FirstpageState extends State<Firstpage> {
                     return Container(
                         padding: const EdgeInsets.symmetric(vertical: 5),
                         child: Stack(children: [
-                          Image.file(images[index]),
+                          (isLoading && index + 1 == images.length)
+                              ? SizedBox(
+                                  width: MediaQuery.sizeOf(context).width,
+                                  height:
+                                      MediaQuery.sizeOf(context).height * 0.5,
+                                  child: const Center(
+                                      child: CircularProgressIndicator()))
+                              : Image.file(images[index]),
                           (index + 1 == images.length)
                               ? Positioned(
                                   top: 10,
@@ -126,7 +134,8 @@ class _FirstpageState extends State<Firstpage> {
                                                 });
                                               },
                                               tooltip: 'Remove Filter',
-                                              child: const Icon(Icons.refresh),
+                                              child: const Icon(
+                                                  Icons.replay_rounded),
                                             ),
                                             const SizedBox(width: 20),
                                             FloatingActionButton(
@@ -145,10 +154,14 @@ class _FirstpageState extends State<Firstpage> {
                                           children: [
                                             FloatingActionButton(
                                               onPressed: () async {
+                                                setState(() {
+                                                  isLoading = true;
+                                                });
                                                 File filteredImage =
                                                     await applyThreshold(
                                                         images[index]);
                                                 setState(() {
+                                                  isLoading = false;
                                                   filterApplied = true;
                                                   originalImg = images[index];
                                                   images[index] = filteredImage;
@@ -160,10 +173,14 @@ class _FirstpageState extends State<Firstpage> {
                                             const SizedBox(width: 20),
                                             FloatingActionButton(
                                               onPressed: () async {
+                                                setState(() {
+                                                  isLoading = true;
+                                                });
                                                 File filteredImage =
                                                     await applyThreshold2(
                                                         images[index]);
                                                 setState(() {
+                                                  isLoading = false;
                                                   filterApplied = true;
                                                   originalImg = images[index];
                                                   images[index] = filteredImage;
